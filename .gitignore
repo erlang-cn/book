@@ -1,0 +1,15 @@
+*~
+*.beam
+*.bbl
+*.blg
+*.aux
+*.log
+*.out
+*.pdf
+*.toc
+*.lol
+*.session
+*.synctex.gz
+*.svg
+*.zip
+pages.html

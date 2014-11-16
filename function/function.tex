@@ -1,0 +1,96 @@
+\documentclass[preview,multi,crop=false,border=1in,class=memoir]{standalone}
+\usepackage{../common}
+
+\begin{document}
+\begin{preview-page}
+\section{函数}
+
+Erlang中最最基本的两个概念就是函数和模式了。其实，算术运算也会先转换成
+函数调用，再计算。比如，初识Erlang中最开始的例子可以写成下面这样。
+
+\begin{ErlangShellSession}
+1> erlang:'+'(1,1).
+2
+2> erlang:'-'(5,2).
+3
+3> erlang:'*'(2,2).
+4
+4> erlang:'+'(1,erlang:'*'(2,2)).
+5
+5> erlang:'*'(erlang:'+'(1,2),2).
+6
+6>
+\end{ErlangShellSession}
+
+注意到 \verb|+| 两边都有 \verb|'| 。通常 \verb|atom()| 都是由小写字母开
+头的。Erlang也允许非小写字母开头或者有特殊字符的 \verb|atom()| 。这些
+\verb|atom()| 就需要前后都有 \verb|'| 了。当然了，在小写字母开头的
+\verb|atom()| 两边都加上 \verb|'| 会被认为是和不加相同的 \verb|atom()| 。
+
+\begin{ErlangShellSession}
+1> a = 'a'.
+a
+2>
+\end{ErlangShellSession}
+
+现在就来看一下怎么解释函数。
+
+
+\subsection{Environment}
+
+函数中定义的变量，在调用的过程中，会有对应的值。比如，
+
+把这种对应称为Environment。要解释函数，就要能表示Environment。方便起见，
+这里先用小写字母开头的 \verb|atom()| 来表示变量名。
+
+\begin{Exercise}[title={Environment},difficulty=2]
+\verb|environ|
+
+\verb|new/0|
+\verb|bind/2|
+\verb|is_bound/1|
+\verb|get_value/1|
+\end{Exercise}
+
+\nonzeroparskip
+
+我们可以用一个特殊的 \verb|list()| 来表示Environment。这个
+\verb|list()| 的每个元素都是一个特殊的 \verb|tuple()| 。这个 \verb|tuple()|
+的第一个元素用来表示变量名，第二个元素用来表示变量的值。
+
+
+\verb|subst/2|
+
+
+\subsection{S表达式}
+
+定义S表达式 \cite{McCarthy:1960:symbolic}
+
+\begin{itemize}
+\item 若 \verb|Expr| 是一个 \verb|atom()| ， \verb|Expr| 是一个S表达式。
+\item 若 \verb|Expr| 是一个 \verb|list()| ，且 \verb|Expr| 里的所有元素都是S表达式，那么 \verb|Expr| 是一个S表达式。
+\end{itemize}
+
+\begin{Exercise}[difficulty=1]
+\verb|is_sexpr/1|
+\end{Exercise}
+
+\nonzeroparskip
+
+若S表达式是一个 \verb|atom()| ，将其视为变量名，其值可以在Environment中
+代换得到。若一个S表达式是一个 \verb|list()| ，我们把它当作是一个函数调
+用，其中，这个 \verb|list()| 第一个元素的值，是被调用的函数，剩余的元素
+就是传入的参数。
+
+\subsection{quote, label}
+
+\subsection{car, cdr, cons}
+
+\subsection{atom, eq, cond}
+
+\subsection{lambda}
+
+
+
+\end{preview-page}
+\end{document}
