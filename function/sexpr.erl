@@ -1,6 +1,6 @@
 -module(sexpr).
 
--export([is_sexpr/1, test/0]).
+-export([is_sexpr/1]).
 
 
 is_sexpr([]) ->
@@ -14,14 +14,3 @@ is_sexpr([Head|Tail]) ->
     end;
 is_sexpr(Expr) ->
     is_atom(Expr).
-
-
-test() ->
-    true = is_sexpr(a),
-    false = is_sexpr(1),
-    true = is_sexpr([]),
-    true = is_sexpr([a]),
-    true = is_sexpr([a, b, c]),
-    false = is_sexpr([1]),
-    false = is_sexpr([a, 1]),
-    ok.

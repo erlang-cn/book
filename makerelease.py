@@ -2,9 +2,10 @@
 
 import os.path
 import sys
+import glob
+from email.utils import formatdate
 from dulwich.repo import Repo
 from dulwich.objects import Blob, Tree, Commit
-import glob
 
 
 repo = Repo(".")
@@ -55,8 +56,10 @@ def make_release_tree(store, sha):
     files = [("%s.%s.%s"%(a,sha,b), "%s.%s"%(a,b)) for a,b in names]
     add_files(store, tree, files)
 
+    date = formatdate(commit.author_time, commit.author_timezone)
+
     with open("index.html", "rb") as f:
-        html = f.read().format(sha=sha)
+        html = f.read().format(date=date, sha=sha)
 
     blob = Blob.from_string(html)
     store.add_object(blob)

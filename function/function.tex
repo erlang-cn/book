@@ -5,8 +5,8 @@
 \begin{preview-page}
 \section{函数}
 
-Erlang中最最基本的两个概念就是函数和模式了。其实，算术运算也会先转换成
-函数调用，再计算。比如，初识Erlang中最开始的例子可以写成下面这样。
+函数是Erlang里最基本的概念之一。其实，算术运算也会先转换成函数调用再计
+算。比如，初识Erlang中最开始的例子可以写成下面这样。
 
 \begin{ErlangShellSession}
 1> erlang:'+'(1,1).
@@ -22,16 +22,6 @@ Erlang中最最基本的两个概念就是函数和模式了。其实，算术�
 6>
 \end{ErlangShellSession}
 
-注意到 \verb|+| 两边都有 \verb|'| 。通常 \verb|atom()| 都是由小写字母开
-头的。Erlang也允许非小写字母开头或者有特殊字符的 \verb|atom()| 。这些
-\verb|atom()| 就需要前后都有 \verb|'| 了。当然了，在小写字母开头的
-\verb|atom()| 两边都加上 \verb|'| 会被认为是和不加相同的 \verb|atom()| 。
-
-\begin{ErlangShellSession}
-1> a = 'a'.
-a
-2>
-\end{ErlangShellSession}
 
 现在就来看一下怎么解释函数。
 
@@ -40,26 +30,67 @@ a
 
 函数中定义的变量，在调用的过程中，会有对应的值。比如，
 
-把这种对应称为Environment。要解释函数，就要能表示Environment。方便起见，
-这里先用小写字母开头的 \verb|atom()| 来表示变量名。
 
-\begin{Exercise}[title={Environment},difficulty=2]
-\verb|environ|
 
-\verb|new/0|
-\verb|bind/2|
-\verb|is_bound/1|
-\verb|get_value/1|
+把这种对应关系称为Environment。要解释函数，就要能表示Environment。方便起见，
+这里先用小写字母开头的 \verb|atom()| 来代表变量名。
+
+\begin{Exercise}[title={environ},difficulty=2]
+在 \verb|environ| 模块里定义四个函数，\verb|empty/0|, \verb|is_bound/2|,
+\verb|bind/3|, \verb|get_value/2|。
+
+调用 \verb|empty/0| 可以得到一个空的Environment。\verb|is_bound/2| 用来
+检查变量名是否在Environment里有定义。\verb|bind/3| 用来把变量名和值关联
+起来。\verb|get_value/2| 用来获取变量的值。
+
+\begin{SourceCode}[5][11]{exercise.erl}
+check(environ) ->
+    Env = environ:empty(),
+    false = environ:is_bound(a, Env),
+    Env1 = environ:bind(a, b, Env),
+    true = environ:is_bound(a, Env1),
+    b = environ:get_value(a, Env1),
+    ok;
+\end{SourceCode}
 \end{Exercise}
+
+\begin{Answer}
+\begin{SourceCode}[6]{environ.erl}
+empty() ->
+    [].
+
+bind(Name, Value, Env) ->
+    [{Name,Value}|Env].
+
+is_bound(_, []) ->
+    false;
+is_bound(Name, [{Name, _}|_]) ->
+    true;
+is_bound(Name, [_|Env]) ->
+    is_bound(Name, Env).
+
+get_value(Name, [{Name, Value}|_]) ->
+    Value;
+get_value(Name, [_|Env]) ->
+    get_value(Name, Env).
+\end{SourceCode}
+\end{Answer}
 
 \nonzeroparskip
 
-我们可以用一个特殊的 \verb|list()| 来表示Environment。这个
-\verb|list()| 的每个元素都是一个特殊的 \verb|tuple()| 。这个 \verb|tuple()|
-的第一个元素用来表示变量名，第二个元素用来表示变量的值。
+现在用一个特殊的 \verb|list()| 来表示Environment。这个 \verb|list()| 的
+每个元素都是一个特殊的 \verb|tuple()| 。这个 \verb|tuple()| 的第一个元
+素用来表示变量名，第二个元素用来表示变量的值。定义 \verb|subst/2| ，用
+来从这样的Environment里取出变量的值。
 
-
-\verb|subst/2|
+\begin{SourceCode}[7][12]{func1.erl}
+subst(_, []) ->
+    none;
+subst(K, [{K, V}|_]) ->
+    {ok, V};
+subst(K, [_|T]) ->
+    subst(K, T).
+\end{SourceCode}
 
 
 \subsection{S表达式}
@@ -68,27 +99,414 @@ a
 
 \begin{itemize}
 \item 若 \verb|Expr| 是一个 \verb|atom()| ， \verb|Expr| 是一个S表达式。
-\item 若 \verb|Expr| 是一个 \verb|list()| ，且 \verb|Expr| 里的所有元素都是S表达式，那么 \verb|Expr| 是一个S表达式。
+\item 若 \verb|Expr| 是一个 \verb|list()| ，且 \verb|Expr| 里的所有元素
+都是S表达式，那么 \verb|Expr| 是一个S表达式。
 \end{itemize}
 
-\begin{Exercise}[difficulty=1]
-\verb|is_sexpr/1|
+\begin{Exercise}[title={sexpr},difficulty=1]
+在 \verb|sexpr| 模块里定义 \verb|is_sexpr/1| 函数，判断是否是S表达式。
+
+
+\begin{SourceCode}[12][20]{exercise.erl}
+check(sexpr) ->
+    true = sexpr:is_sexpr(a),
+    false = sexpr:is_sexpr(1),
+    true = sexpr:is_sexpr([]),
+    true = sexpr:is_sexpr([a]),
+    true = sexpr:is_sexpr([a, b, c]),
+    false = sexpr:is_sexpr([1]),
+    false = sexpr:is_sexpr([{a,a}]),
+    ok;
+\end{SourceCode}
 \end{Exercise}
+
+\begin{Answer}
+\begin{SourceCode}[6][16]{sexpr.erl}
+is_sexpr([]) ->
+    true;
+is_sexpr([Head|Tail]) ->
+    case is_sexpr(Head) of
+        false ->
+            false;
+        true ->
+            is_sexpr(Tail)
+    end;
+is_sexpr(Expr) ->
+    is_atom(Expr).
+\end{SourceCode}
+\end{Answer}
 
 \nonzeroparskip
 
 若S表达式是一个 \verb|atom()| ，将其视为变量名，其值可以在Environment中
-代换得到。若一个S表达式是一个 \verb|list()| ，我们把它当作是一个函数调
-用，其中，这个 \verb|list()| 第一个元素的值，是被调用的函数，剩余的元素
-就是传入的参数。
+找到。若一个S表达式是一个 \verb|list()| ，我们把它当作是一个函数调用，
+其中，这个 \verb|list()| 第一个元素的值，是被调用的函数，剩余的元素就是
+传入的参数。这种求值的规则可以用 \verb|apply/2| 来表示。
+\verb|apply/2| 定义如下
 
-\subsection{quote, label}
+\begin{SourceCode}[15][21]{func1.erl}
+apply(Expr, Env)
+  when is_atom(Expr) ->
+    {ok, Value} = subst(Expr, Env),
+    {Value, Env};
+apply([H|T], Env) ->
+    {Fun, Env1} = apply(H, Env),
+    call(Fun, T, Env1).
+\end{SourceCode}
+
+注意，Erlang编译时默认导入的函数中，也有叫 \verb|apply/2| 的。可以在文
+件开头取消。
+
+\begin{SourceCode}[2][2]{func1.erl}
+-compile({no_auto_import, [apply/2]}).
+\end{SourceCode}
+
+因为现在普通的数据和函数都是从同一个Environment里取出来的，为了区分，用
+\verb|{data, X}| 表示普通数据， 用 \verb|{fn, X}| 表示函数。光有一个空
+的Environment和求值规则，啥也做不了。接下来就来定义一些基本函数。
+
+\subsection{quote}
+
+假如，我们想让一个表达式的求值结果是一个 \verb|atom()| ，比如 \verb|a|
+。因为在求值过程中， 一个 \verb|atom()| 会当作变量名，直接对 \verb|a|
+求值得到的会是变量 \verb|a| 的值，而不是 \verb|a| 。为了能得到
+\verb|a| ，需要定义 \verb|quote| 函数。这个函数只接受一个参数，调用这个
+函数的结果就是传入的参数。
+
+\begin{SourceCode}[32][36]{func1.erl}
+test(quote) ->
+    {{data, a}, _} =
+        apply([quote, a], new_env()),
+    {{data, [a,b,c]}, _} =
+        apply([quote, [a,b,c]], new_env()).
+\end{SourceCode}
+
+先定义\verb|new_env/0| ，用来得到一开始的 Environment。
+
+\begin{SourceCode}[28][29]{func1.erl}
+new_env() ->
+    [{quote, {fn, quote}}].
+\end{SourceCode}
+
+\verb|quote| 的定义很简单。
+
+\begin{SourceCode}[24][25]{func1.erl}
+call({fn, quote}, [X], Env) ->
+    {{data, X}, Env}.
+\end{SourceCode}
+
+S表达式的 \verb|[quote, a]| 作用相当于 Erlang 里的 \verb|a| 。这已经不
+是一般的函数了，不过这里仍然把它称作函数。在Erlang里调用一个函数前，会
+先对各个参数的表达式求值。定义 \verb|id/1| 函数
+
+\begin{SourceCode}[32][33]{func2.erl}
+id(X) ->
+    X.
+\end{SourceCode}
+
+不难看出
+
+\begin{SourceCode}[36][38]{func2.erl}
+test(id) ->
+    a = id(a),
+    a = id(id(a));
+\end{SourceCode}
+
+而在S表达式里，在调用函数前，没有先对表达式求值。所以，
+\verb|[quote, [quote, a]]| 的求值结果会是 \verb|[quote, a]| 。
+
+\begin{SourceCode}[39][43]{func2.erl}
+test(quote) ->
+    {{data, a}, _} =
+        apply([quote, a], new_env()),
+    {{data, [quote, a]}, _} =
+        apply([quote, [quote, a]], new_env()).
+\end{SourceCode}
+
+
+\begin{Exercise}[title={id},difficulty=1]
+定义S表达式函数 \verb|id| ，使其和Erlang里 \verb|id/1| 有相同的作用
+
+\begin{SourceCode}[21][26]{exercise.erl}
+check(id) ->
+    {{data, a}, _} =
+        id:apply([id, [quote, a]], id:new_env()),
+    {{data, a}, _} =
+        id:apply([id, [id, [quote, a]]], id:new_env()),
+    ok.
+\end{SourceCode}
+
+\end{Exercise}
+
+\begin{Answer}
+\begin{SourceCode}[24]{id.erl}
+call({fn, quote}, [X], Env) ->
+    {{data, X}, Env};
+call({fn, id}, [X], Env) ->
+    apply(X, Env).
+
+
+new_env() ->
+    [{quote, {fn, quote}},
+     {id,    {fn, id}}].
+\end{SourceCode}
+\end{Answer}
+
+
+\subsection{label}
+
+定义一个S表达式函数 \verb|label| ，用来指定变量的值。现在不考虑模式，只
+要做到和Erlang里 \verb|X = a| 类似就行了。因为要检查后面的表达式里变量
+的值， 在定义 \verb|label| 之前，先定义一个辅助函数\verb|eval_list/2|
+，用来对一连串S表达式分别求值。
+
+\begin{SourceCode}[36][41]{func3.erl}
+eval_list([], Env) ->
+    {[], Env};
+eval_list([H|T], Env) ->
+    {VH, Env1} = apply(H, Env),
+    {VT, Env2} = eval_list(T, Env1),
+    {[VH|VT], Env2}.
+\end{SourceCode}
+
+接着来定义 \verb|label|
+
+\begin{SourceCode}[26][28]{func3.erl}
+call({fn, label}, [X,Y], Env) ->
+    {Y1, Env1} = apply(Y, Env),
+    {Y1, [{X, Y1}|Env1]}.
+\end{SourceCode}
+
+这样定义的问题是，前一次指定的值会被后一次指定的值覆盖
+
+\begin{SourceCode}[49][62]{func3.erl}
+test(label) ->
+    {[{data, a}, {data, a}], _} =
+        eval_list([[label, x, [quote, a]],
+                   x
+                  ], new_env()),
+    {[{data, b}, {data, b}], _} =
+        eval_list([[label, x, [quote, b]],
+                   x
+                  ], new_env()),
+    {[{data, a}, {data, b}, {data, b}], _} =
+        eval_list([[label, x, [quote, a]],
+                   [label, x, [quote, b]],
+                   x
+                  ], new_env()).
+\end{SourceCode}
+
+而在Erlang里，这样会导致出错
+
+\begin{ErlangShellSession}
+1> X = a.
+a
+2> X = b.
+** exception error: no match of right hand side value b
+3>
+\end{ErlangShellSession}
+
+不过，这实际上是模式匹配的作用。这里就先保留当前的定义，小心一点不重复
+指定同一个变量的值就好了。
 
 \subsection{car, cdr, cons}
 
-\subsection{atom, eq, cond}
+因为S表达式由 \verb|list()| 和 \verb|atom()| 组成，所以肯定要定义一些
+\verb|list()| 相关的函数。 \verb|car|, \verb|cdr|, \verb|cons| 分别对应
+Erlang里的 \verb|car/1|, \verb|cdr/1| 和 \verb|cons/2| 。
+
+\begin{SourceCode}[57][59]{func4.erl}
+car([H|_]) -> H.
+cdr([_|T]) -> T.
+cons(H, T) -> [H|T].
+\end{SourceCode}
+
+\verb|car/1| 用来取出一个 \verb|list()| 的第一个元素
+
+\begin{SourceCode}[96][98]{func4.erl}
+test(car) ->
+    a = car([a]),
+    a = car([a,b]);
+\end{SourceCode}
+
+\verb|cdr/1| 用来取出一个 \verb|list()| 的除第一个元素以外的所有元素
+
+\begin{SourceCode}[99][101]{func4.erl}
+test(cdr) ->
+    [] = cdr([a]),
+    [b] = cdr([a,b]);
+\end{SourceCode}
+
+\verb|cons/2| 用来在一个 \verb|list()| 之前加上一个元素。
+
+\begin{SourceCode}[102][104]{func4.erl}
+test(cons) ->
+    [a] = cons(a, []),
+    [a,b] = cons(a, [b]).
+\end{SourceCode}
+
+定义 \verb|car|, \verb|cdr|, \verb|cons| 。
+
+\begin{SourceCode}[35][38]{func4.erl}
+call({fn, cons}, [X,Y], Env) ->
+    {[{data,X1}, {data,Y1}], Env1} =
+        eval_list([X,Y], Env),
+    {{data, [X1|Y1]}, Env1}.
+\end{SourceCode}
+
+可以看到和Erlang里对应的函数作用是一样的。
+
+\begin{SourceCode}[81][95]{func4.erl}
+test(list) ->
+    {{data, a}, _} =
+        apply([car, [quote, [a]]], new_env()),
+    {{data, a}, _} =
+        apply([car, [quote, [a,b]]], new_env()),
+    {{data, []}, _} =
+        apply([cdr, [quote, [a]]], new_env()),
+    {{data, [b]}, _} =
+        apply([cdr, [quote, [a,b]]], new_env()),
+    {{data, [a]}, _} =
+        apply([cons, [quote, a], [quote, []]],
+              new_env()),
+    {{data, [a,b]}, _} =
+        apply([cons, [quote, a], [quote, [b]]],
+              new_env());
+\end{SourceCode}
+
+\subsection{cond}
+
+Erlang里，一个函数可以有多个分句。这也可以用case表达式来表示。因为不考
+虑模式，所以这里定义的 \verb|cond| 就相当于只剩下guard的case表达式。 函
+数 \verb|cond| 只接受一个 \verb|list()| 类型的参数，其中每个元素都是一
+个有两个元素的 \verb|list()| 。逐个对其第一个元素求值，直到找到一个
+\verb|list()| ，对其第一个元素求值的结果是 \verb|true| ，那么调用
+\verb|cond| 函数的结果就是对其第二个元素求值的结果。
+
+\begin{SourceCode}[100][127]{func5.erl}
+test('cond') ->
+    {{data, a}, _} =
+        apply(['cond',
+               [[[quote, true],
+                 [quote, a]],
+                [[quote, false],
+                 [quote, b]],
+                [[quote, false],
+                 [quote, c]]
+               ]], new_env()),
+    {{data, b}, _} =
+        apply(['cond',
+               [[[quote, false],
+                 [quote, a]],
+                [[quote, true],
+                 [quote, b]],
+                [[quote, false],
+                 [quote, c]]
+               ]], new_env()),
+    {{data, c}, _} =
+        apply(['cond',
+               [[[quote, false],
+                 [quote, a]],
+                [[quote, false],
+                 [quote, b]],
+                [[quote, true],
+                 [quote, c]]
+               ]], new_env()).
+\end{SourceCode}
+
+以下是 \verb|cond| 的定义
+
+\begin{SourceCode}[39][46]{func5.erl}
+call({fn, 'cond'}, [[[P,E]|T]], Env) ->
+    {{data, R}, Env1} = apply(P, Env),
+    case R of
+        false ->
+            call({fn, 'cond'}, [T], Env1);
+        true ->
+            apply(E, Env1)
+    end.
+\end{SourceCode}
+
+\subsection{atom, eq}
+
+光有这样的 \verb|cond| 并没有什么用，还需要定义一些函数能对值进行一些判
+断。先来看 \verb|atom| 。 \verb|atom| 的作用和Erlang里
+\verb|is_atom/1| 一样。
+
+\begin{SourceCode}[146][150]{func6.erl}
+test(atom) ->
+    {{data, true}, _} =
+        apply([atom, [quote, a]], new_env()),
+    {{data, false}, _} =
+        apply([atom, [quote, [a,b,c]]], new_env());
+\end{SourceCode}
+
+\verb|atom| 的定义很简单。
+
+\begin{SourceCode}[47][49]{func6.erl}
+call({fn, atom}, [X], Env) ->
+    {{data, X1}, Env1} = apply(X, Env),
+    {{data, is_atom(X1)}, Env1};
+\end{SourceCode}
+
+再来看 \verb|eq| 。 \verb|eq| 用来比较两个值是否相同。不过有个例外，对
+于两个非空的 \verb|list()| ，即便所有元素都相同，在这里也认为不同。因为
+能判断的话，已经具有部分模式匹配的功能了，这是现在需要尽量避免的。
+
+\begin{SourceCode}[151][169]{func6.erl}
+test(eq) ->
+    {{data, true}, _} =
+        apply([eq, [quote, []], [quote, []]],
+              new_env()),
+    {{data, true}, _} =
+        apply([eq, [quote, a], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, []], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, a], [quote, []]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a]], [quote, [b]]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a,b,c]], [quote, [a,b,c]]],
+              new_env()).
+\end{SourceCode}
+
+在Erlang里，可以用 \verb|eq/2| 表示
+
+\begin{SourceCode}[75][81]{func6.erl}
+eq([], []) ->
+    true;
+eq(X, Y)
+  when is_atom(X), is_atom(Y) ->
+    X =:= Y;
+eq(_, _) ->
+    false.
+\end{SourceCode}
+
+
+直接用一下Erlang里的 \verb|eq/2| 就定义出 \verb|eq| 来了。
+
+\begin{SourceCode}[50][53]{func6.erl}
+call({fn, eq}, [X,Y], Env) ->
+    {[{data,X1}, {data,Y1}], Env1} =
+        eval_list([X,Y], Env),
+    {{data, eq(X1,Y1)}, Env1}.
+\end{SourceCode}
 
 \subsection{lambda}
+
+可以用 \verb|lambda| 定义函数。
+
+
+
+\subsection{macro}
+
+\begin{Exercise}[title={defun},difficulty=1]
+\end{Exercise}
 
 
 

@@ -78,7 +78,13 @@ ok
 
 编辑文件 \verb|hello.erl| 。
 
-\SourceCodeInput{hello.erl}
+\begin{SourceCode}{hello.erl}
+-module(hello).
+
+-export([world/0]).
+
+world() -> "Hello, world!".
+\end{SourceCode}
 
 打开Erlang Shell。假如你用的是Windows，请把桌面上的Erlang Shell快捷方式，
 复制到 \verb|hello.erl| 所在目录。并用新复制出来的快捷方式打开Erlang

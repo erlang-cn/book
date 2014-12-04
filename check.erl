@@ -125,6 +125,27 @@ verify_session(Filename) ->
             Reason
     end.
 
+
+find_snippet(Filename) ->
+    {ok, Text} = file:read_file(Filename),
+    [Header|Lines] = binary:split(Text, <<"\n">>, [global, trim]),
+    [Start, End, SourceFilename] = binary:split(Header, <<" ">>, [global]),
+    {ok, Source} = file:read_file(SourceFilename),
+
+    SourceLines =
+        string:sub_string(
+          binary:split(Source, <<"\n">>, [global, trim]),
+          binary_to_integer(Start),
+          binary_to_integer(End)),
+
+    case Lines =:= SourceLines of
+        true ->
+            ok;
+        false ->
+            {not_found, Text}
+    end.
+
+
 verify_sessions(Filenames) ->
     lists:map(
       fun(Filename) ->
@@ -142,6 +163,9 @@ test_files(Filenames) ->
           end,
           Filenames),
 
+    [code:purge(Module) || {_, {ok, Module}} <- CompilingResults],
+    [code:delete(Module) || {_, {ok, Module}} <- CompilingResults],
+
     TestingResults =
         lists:map(
           fun
@@ -151,11 +175,13 @@ test_files(Filenames) ->
                       false ->
                           {Filename, {ok, no_test}};
                       true ->
-                          case catch(Module:test()) of
-                              ok ->
-                                  {Filename, {ok, test_success}};
-                              {'EXIT', Result} ->
-                                  {Filename, {failure, Result}}
+                          process_flag(trap_exit, true),
+                          Pid = spawn_link(Module, test, []),
+                          receive
+                              {'EXIT', Pid, normal} ->
+                                  {Filename, ok};
+                              {'EXIT', Pid, Reason} ->
+                                  {Filename, {failure, Reason}}
                           end
                   end;
               ({Filename, Result}) ->
@@ -163,8 +189,15 @@ test_files(Filenames) ->
           end,
           CompilingResults),
 
-    [code:purge(Module) || {_, {ok, Module}} <- CompilingResults],
     TestingResults.
+
+
+find_snippets(Filenames) ->
+    lists:map(
+      fun(Filename) ->
+              {Filename, find_snippet(Filename)}
+      end,
+      Filenames).
 
 
 find_files(Ext, Dir) ->
@@ -180,12 +213,16 @@ check_folder(Folder) ->
         [ {lists:flatten([Folder, "/", Name]), Result}
           || {Name, Result} <- test_files(find_files(".erl", "."))],
 
-    TextResult =
+    SessionResult =
         [ {lists:flatten([Folder, "/", Name]), Result}
           || {Name, Result} <- verify_sessions(find_files(".session", "."))],
 
+    SnippetResult =
+        [ {lists:flatten([Folder, "/", Name]), Result}
+          || {Name, Result} <- find_snippets(find_files(".snippet", "."))],
+
     ok = file:set_cwd(Cwd),
-    {TextResult, CodeResult}.
+    {CodeResult, SessionResult, SnippetResult}.
 
 
 find_folders() ->
@@ -212,15 +249,7 @@ format_exception(Reason, StackTrace) ->
       unicode).
 
 
-print_text_results({Filename, normal}) ->
-    {Filename, [{0,0},{1,1}]};
-print_text_results({Filename, {Reason, StackTrace}}) ->
-    Ex = format_exception(Reason, StackTrace),
-    io:format("=SHELL SESSION ERROR====~nError occurs in ~s:~n~s~n~n", [Filename, Ex]),
-    {Filename, [{0,0},{0,1}]}.
-
-
-print_code_results({Filename, {error, Errors, Warnings}}) ->
+format_code_result({Filename, {error, Errors, Warnings}}) ->
     io:format("=COMPILING ERROR====~ncompilation of ~s failed:~n", [Filename]),
     lists:foreach(
       fun ({File, Desc}) ->
@@ -232,47 +261,66 @@ print_code_results({Filename, {error, Errors, Warnings}}) ->
       end,
       Errors++Warnings),
     io:format("~n"),
-    {Filename, [{0,1},{0,1}]};
-print_code_results({Filename, {failure, {Reason, StackTrace}}}) ->
+    {Filename, error};
+format_code_result({Filename, {failure, {Reason, StackTrace}}}) ->
     io:format("=TEST FAILURE====~nTest in ~s failed:~n~s~n~n", [Filename, format_exception(Reason, StackTrace)]),
-    {Filename, [{1,1},{0,1}]};
-print_code_results({Filename, _}) ->
-    {Filename, [{1,1},{1,1}]}.
+    {Filename, error};
+format_code_result({Filename, _}) ->
+    {Filename, ok}.
+
+
+format_text_result({Filename, normal}) ->
+    {Filename, ok};
+format_text_result({Filename, {Reason, StackTrace}}) ->
+    Ex = format_exception(Reason, StackTrace),
+    io:format("=SHELL SESSION ERROR====~nError occurs in ~s:~n~s~n~n", [Filename, Ex]),
+    {Filename, error}.
+
+
+format_snippet_result({Filename, ok}) ->
+    {Filename, ok};
+format_snippet_result({Filename, {not_found, Lines}}) ->
+    io:format("=CODE SNIPPET NOT FOUND====~nSnippet ~s not found:~n~s~n~n", [Filename, Lines]),
+    {Filename, error}.
 
 
 main(_) ->
     Folders = find_folders(),
-    {TextResults, CodeResults} =
-        lists:unzip(
+    {CodeResults, SessionResults, SnippetResults} =
+        lists:unzip3(
           lists:map(fun (Folder) -> check_folder(Folder) end, Folders)),
-
-    TextReport =
-        lists:map(
-          fun(Result) ->
-                  print_text_results(Result)
-          end,
-          lists:append(TextResults)),
 
     CodeReport =
         lists:map(
           fun(Result) ->
-                  print_code_results(Result)
+                  format_code_result(Result)
           end,
           lists:append(CodeResults)),
 
-    Report = TextReport ++ CodeReport,
+    SessionReport =
+        lists:map(
+          fun(Result) ->
+                  format_text_result(Result)
+          end,
+          lists:append(SessionResults)),
+
+    SnippetReport =
+        lists:map(
+          fun(Result) ->
+                  format_snippet_result(Result)
+          end,
+          lists:append(SnippetResults)),
+
+
+    Report = CodeReport ++ SessionReport ++ SnippetReport,
 
     io:format("=RESULTS====~n"),
     lists:foreach(
       fun({Name, Result}) ->
-              io:format(
-                "~s: ~s~n",
-                [Name,
-                 string:join(
-                   [ io_lib:format("~w/~w", [Success, Total]) || {Success, Total} <- Result],
-                   " ")])
+              io:format("~s: ~s~n", [Name, Result])
       end,
       Report),
 
-   {Success, Total} = lists:unzip(lists:append([Result || {_,Result} <- Report])),
-   true = (lists:sum(Success) == lists:sum(Total)).
+    Success = length([ok || {_,ok} <- Report]),
+    Total = length(Report),
+    true = (Success == Total).

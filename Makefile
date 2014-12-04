@@ -5,6 +5,7 @@ clean: clean_tex
 	rm -f *~ */*~
 	rm -f *.beam */*.beam
 	rm -f */*.session
+	rm -f */*.snippet
 	rm -f *.synctex.gz */*.synctex.gz
 	rm -f *.svg
 	rm -f *.zip

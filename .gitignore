@@ -9,6 +9,7 @@
 *.toc
 *.lol
 *.session
+*.snippet
 *.synctex.gz
 *.svg
 *.zip

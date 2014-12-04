@@ -31,7 +31,6 @@
 \setlist[enumerate]{noitemsep,topsep=0pt}
 \setlist[itemize]{noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt}
 
-\usepackage{fancyvrb}
 \usepackage{listings}
 \lstset{
   language={},
@@ -44,15 +43,30 @@
   breakautoindent=false}
 
 \newcounter{erlangshellsession}[section]
-
+\newoutputstream{erlangshellsession}
 \newenvironment{ErlangShellSession}{
 \stepcounter{erlangshellsession}
-\VerbatimEnvironment
-\begin{VerbatimOut}{\currfiledir\theerlangshellsession.session}}{
-\end{VerbatimOut}
+\openoutputfile{\currfiledir\theerlangshellsession.session}{erlangshellsession}
+\writeverbatim{erlangshellsession}
+}{
+\endwriteverbatim
+\closeoutputstream{erlangshellsession}
 \begin{SingleSpacing}
 \lstinputlisting[title={Erlang Shell}]{\currfiledir\theerlangshellsession.session}
 \end{SingleSpacing}}
+
+\newcounter{codesnippet}[section]
+\newoutputstream{codesnippet}
+\newenvironmentx{SourceCode}[3][1=1,2=9999999]{
+\stepcounter{codesnippet}
+\begin{SingleSpacing}
+\lstinputlisting[numbers=left,caption={#3},firstnumber=#1,firstline=#1,lastline=#2]{\currfiledir#3}
+\end{SingleSpacing}
+\openoutputfile{\currfiledir\thecodesnippet.snippet}{codesnippet}
+\writeverbatim{codesnippet}
+#1 #2 #3}{\endwriteverbatim
+\closeoutputstream{codesnippet}
+}
 
 \newcommandx\SourceCodeInput[3][1=1,2=9999999]{
 \begin{SingleSpacing}

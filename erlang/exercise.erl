@@ -8,13 +8,16 @@ check(fac) ->
     6 = fac:f(3),
     24 = fac:f(4),
     120 = fac:f(5),
+    ok;
+check(fib) ->
+    1 = fib:f(1),
+    1 = fib:f(2),
+    2 = fib:f(3),
+    3 = fib:f(4),
+    5 = fib:f(5),
     ok.
 
-
-test(Module) ->
-    {ok, Module} = c:c(Module),
-    check(Module).
-
 test() ->
-    test(fac),
+    check(fac),
+    check(fib),
     ok.
