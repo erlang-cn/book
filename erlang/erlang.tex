@@ -427,7 +427,10 @@ a
 4>
 \end{ErlangShellSession}
 
-那 \verb|case| 和 \verb|end| 呢？ 这两个是用来表示这中间是一个 \verb|case| 表达式，都是Erlang的保留字。实际上， \verb|atom()| 必须在两个 \verb|'| 之间输入。只不过，假如一个 \verb|atom()| 是小写字母开头的，不包含特殊字符，而且不是保留字，输入时就可以省略前后两个 \verb|'| 。
+那 \verb|case| 和 \verb|end| 呢？ 这两个是用来表示这中间是一个
+\verb|case| 表达式，都是Erlang的保留字。实际上， \verb|atom()| 必须在两
+个 \verb|'| 之间输入。只不过，假如一个 \verb|atom()| 是小写字母开头的，
+不包含特殊字符，而且不是保留字，输入时就可以省略前后两个 \verb|'| 。
 
 \begin{ErlangShellSession}
 1> case.
@@ -509,7 +512,7 @@ a
 如上图所示，A往右移一格就到B，B往左边移一格就到A，A往下移一格就到C，C往
 上移一格就到A。
 
-\begin{SourceCode}[25][32]{board.erl}
+\begin{SourceCode}[19][26]{board1.erl}
 test(move) ->
     A = {3,3},
     B = {4,3},
@@ -517,13 +520,13 @@ test(move) ->
     B = move(right, A),
     A = move(left, B),
     C = move(down, A),
-    A = move(up, C);
+    A = move(up, C).
 \end{SourceCode}
 
 分别用 \verb|X|, \verb|Y| 表示横坐标和纵坐标，往左就是把横坐标减一，往
 右就是把横坐标加一，往上就是把纵坐标减一，往下就是把纵坐标加一。
 
-\begin{SourceCode}[5][16]{board.erl}
+\begin{SourceCode}[5][16]{board1.erl}
 move(left, {X,Y})
   when X > 1, X =< 8 ->
     {X-1, Y};
@@ -539,15 +542,19 @@ move(down, {X,Y})
 \end{SourceCode}
 
 
-\begin{Exercise}[title={board1},difficulty={1}]
-停止
+\begin{Exercise}[title={board3},difficulty={1}]
+上面的例子并没有定义比如在最左边往左移动的情况。
+
+现在规定，在最左边往左移动的结果是待在原地。
 \end{Exercise}
 
-\begin{Exercise}[title={board2},difficulty={1}]
-到另一边
+
+\begin{Exercise}[title={board4},difficulty={1}]
+现在把规定改成，在最左边往左移动的结果是出现在最右边。
 \end{Exercise}
 
-\begin{Exercise}[title={board3}, difficulty={1}]
+
+\begin{Exercise}[title={board5}, difficulty={1}]
 move\_n
 \end{Exercise}
 
@@ -558,7 +565,7 @@ move\_n
 表示和同一个事物相关的多个数据，比如一个格子的横坐标和纵坐标。而
 \verb|list()| 适合表示很多个同类的数据，比如多个方向，多个坐标。
 
-\begin{SourceCode}[33][35]{board.erl}
+\begin{SourceCode}[33][35]{board2.erl}
 test(moves) ->
     {4,1} = moves([right,right,right], {1,1}),
     {1,4} = moves([down,down,down], {1,1}).
@@ -586,7 +593,7 @@ test(moves) ->
 若 \verb|list()| 为空，说明不需要再移动了，那么起始坐标就是最终坐标。否
 则，取出第一个方向，把按此移动一步后的坐标作为新的起始坐标，再来计算。
 
-\begin{SourceCode}[19][22]{board.erl}
+\begin{SourceCode}[19][22]{board2.erl}
 moves([], From) ->
     From;
 moves([H|T], From) ->
@@ -594,10 +601,22 @@ moves([H|T], From) ->
 \end{SourceCode}
 
 \begin{Exercise}[title={length}, difficulty={1}]
+定义 \verb|length/1| 函数，求一个 \verb|list()| 的元素个数
+
 \end{Exercise}
 
 \begin{Exercise}[title={sum}, difficulty={1}]
 \end{Exercise}
+
+\begin{Exercise}[title={member}, difficulty={1}]
+\end{Exercise}
+
+\begin{Exercise}[title={append}, difficulty={1}]
+\end{Exercise}
+
+\begin{Exercise}[title={zip}, difficulty={1}]
+\end{Exercise}
+
 
 \end{preview-page}
 \end{document}

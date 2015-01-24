@@ -12,13 +12,13 @@ subst(K, [_|T]) ->
     subst(K, T).
 
 
-apply(Expr, Env)
-  when is_atom(Expr) ->
-    {ok, Value} = subst(Expr, Env),
-    {Value, Env};
 apply([H|T], Env) ->
     {Fun, Env1} = apply(H, Env),
-    call(Fun, T, Env1).
+    call(Fun, T, Env1);
+apply(Expr, Env) ->
+    true = is_atom(Expr),
+    {ok, Value} = subst(Expr, Env),
+    {Value, Env}.
 
 
 call({fn, quote}, [X], Env) ->
@@ -36,11 +36,11 @@ call({fn, cons}, [X,Y], Env) ->
     {[{data,X1}, {data,Y1}], Env1} =
         eval_list([X,Y], Env),
     {{data, [X1|Y1]}, Env1};
-call({fn, 'cond'}, [[[P,E]|T]], Env) ->
+call({fn, 'cond'}, [[P,E]|T], Env) ->
     {{data, R}, Env1} = apply(P, Env),
     case R of
         false ->
-            call({fn, 'cond'}, [T], Env1);
+            apply(['cond'|T], Env1);
         true ->
             apply(E, Env1)
     end;
@@ -100,11 +100,17 @@ zip([H1|T1], [H2|T2]) ->
     [{H1,H2}|zip(T1, T2)].
 
 
+test(subst) ->
+    {ok, c} = subst(a, [{b,d},{a,c}]),
+    none = subst(a, [{b,d}]),
+    {ok, c} = subst(a, [{a,c},{b,d},{a,e}]);
 test(quote) ->
     {{data, a}, _} =
         apply([quote, a], new_env()),
     {{data, [a,b,c]}, _} =
-        apply([quote, [a,b,c]], new_env());
+        apply([quote, [a,b,c]], new_env()),
+    {{data, [quote, a]}, _} =
+        apply([quote, [quote, a]], new_env());
 test(label) ->
     {[{data, a}, {data, a}], _} =
         eval_list([[label, x, [quote, a]],
@@ -137,31 +143,22 @@ test(list) ->
 test('cond') ->
     {{data, a}, _} =
         apply(['cond',
-               [[[quote, true],
-                 [quote, a]],
-                [[quote, false],
-                 [quote, b]],
-                [[quote, false],
-                 [quote, c]]
-               ]], new_env()),
+               [[quote, true],  [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
     {{data, b}, _} =
         apply(['cond',
-               [[[quote, false],
-                 [quote, a]],
-                [[quote, true],
-                 [quote, b]],
-                [[quote, false],
-                 [quote, c]]
-               ]], new_env()),
+               [[quote, false], [quote, a]],
+               [[quote, true],  [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
     {{data, c}, _} =
         apply(['cond',
-               [[[quote, false],
-                 [quote, a]],
-                [[quote, false],
-                 [quote, b]],
-                [[quote, true],
-                 [quote, c]]
-               ]], new_env());
+               [[quote, false], [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, true],  [quote, c]]
+              ], new_env());
 test(atom) ->
     {{data, true}, _} =
         apply([atom, [quote, a]], new_env()),
@@ -207,6 +204,7 @@ test(lambda) ->
 
 
 test() ->
+    test(subst),
     test(quote),
     test(label),
     test(list),

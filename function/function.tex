@@ -145,13 +145,13 @@ is_sexpr(Expr) ->
 \verb|apply/2| 定义如下
 
 \begin{SourceCode}[15][21]{func1.erl}
-apply(Expr, Env)
-  when is_atom(Expr) ->
-    {ok, Value} = subst(Expr, Env),
-    {Value, Env};
 apply([H|T], Env) ->
     {Fun, Env1} = apply(H, Env),
-    call(Fun, T, Env1).
+    call(Fun, T, Env1);
+apply(Expr, Env) ->
+    true = is_atom(Expr),
+    {ok, Value} = subst(Expr, Env),
+    {Value, Env}.
 \end{SourceCode}
 
 注意，Erlang编译时默认导入的函数中，也有叫 \verb|apply/2| 的。可以在文
@@ -173,7 +173,7 @@ apply([H|T], Env) ->
 \verb|a| ，需要定义 \verb|quote| 函数。这个函数只接受一个参数，调用这个
 函数的结果就是传入的参数。
 
-\begin{SourceCode}[32][36]{func1.erl}
+\begin{SourceCode}[36][40]{func1.erl}
 test(quote) ->
     {{data, a}, _} =
         apply([quote, a], new_env()),
@@ -199,14 +199,14 @@ S表达式的 \verb|[quote, a]| 作用相当于 Erlang 里的 \verb|a| 。这已
 是一般的函数了，不过这里仍然把它称作函数。在Erlang里调用一个函数前，会
 先对各个参数的表达式求值。定义 \verb|id/1| 函数
 
-\begin{SourceCode}[32][33]{func2.erl}
+\begin{SourceCode}[6][7]{equiv.erl}
 id(X) ->
     X.
 \end{SourceCode}
 
 不难看出
 
-\begin{SourceCode}[36][38]{func2.erl}
+\begin{SourceCode}[14][16]{equiv.erl}
 test(id) ->
     a = id(a),
     a = id(id(a));
@@ -215,10 +215,7 @@ test(id) ->
 而在S表达式里，在调用函数前，没有先对表达式求值。所以，
 \verb|[quote, [quote, a]]| 的求值结果会是 \verb|[quote, a]| 。
 
-\begin{SourceCode}[39][43]{func2.erl}
-test(quote) ->
-    {{data, a}, _} =
-        apply([quote, a], new_env()),
+\begin{SourceCode}[41][42]{func2.erl}
     {{data, [quote, a]}, _} =
         apply([quote, [quote, a]], new_env()).
 \end{SourceCode}
@@ -233,13 +230,13 @@ check(id) ->
         id:apply([id, [quote, a]], id:new_env()),
     {{data, a}, _} =
         id:apply([id, [id, [quote, a]]], id:new_env()),
-    ok.
+    ok;
 \end{SourceCode}
 
 \end{Exercise}
 
 \begin{Answer}
-\begin{SourceCode}[24]{id.erl}
+\begin{SourceCode}[24][32]{id.erl}
 call({fn, quote}, [X], Env) ->
     {{data, X}, Env};
 call({fn, id}, [X], Env) ->
@@ -279,7 +276,7 @@ call({fn, label}, [X,Y], Env) ->
 
 这样定义的问题是，前一次指定的值会被后一次指定的值覆盖
 
-\begin{SourceCode}[49][62]{func3.erl}
+\begin{SourceCode}[55][68]{func3.erl}
 test(label) ->
     {[{data, a}, {data, a}], _} =
         eval_list([[label, x, [quote, a]],
@@ -315,7 +312,7 @@ a
 \verb|list()| 相关的函数。 \verb|car|, \verb|cdr|, \verb|cons| 分别对应
 Erlang里的 \verb|car/1|, \verb|cdr/1| 和 \verb|cons/2| 。
 
-\begin{SourceCode}[57][59]{func4.erl}
+\begin{SourceCode}[9][11]{equiv.erl}
 car([H|_]) -> H.
 cdr([_|T]) -> T.
 cons(H, T) -> [H|T].
@@ -323,7 +320,7 @@ cons(H, T) -> [H|T].
 
 \verb|car/1| 用来取出一个 \verb|list()| 的第一个元素
 
-\begin{SourceCode}[96][98]{func4.erl}
+\begin{SourceCode}[17][19]{equiv.erl}
 test(car) ->
     a = car([a]),
     a = car([a,b]);
@@ -331,7 +328,7 @@ test(car) ->
 
 \verb|cdr/1| 用来取出一个 \verb|list()| 的除第一个元素以外的所有元素
 
-\begin{SourceCode}[99][101]{func4.erl}
+\begin{SourceCode}[20][22]{equiv.erl}
 test(cdr) ->
     [] = cdr([a]),
     [b] = cdr([a,b]);
@@ -339,7 +336,7 @@ test(cdr) ->
 
 \verb|cons/2| 用来在一个 \verb|list()| 之前加上一个元素。
 
-\begin{SourceCode}[102][104]{func4.erl}
+\begin{SourceCode}[23][25]{equiv.erl}
 test(cons) ->
     [a] = cons(a, []),
     [a,b] = cons(a, [b]).
@@ -356,7 +353,7 @@ call({fn, cons}, [X,Y], Env) ->
 
 可以看到和Erlang里对应的函数作用是一样的。
 
-\begin{SourceCode}[81][95]{func4.erl}
+\begin{SourceCode}[82][96]{func4.erl}
 test(list) ->
     {{data, a}, _} =
         apply([car, [quote, [a]]], new_env()),
@@ -371,7 +368,7 @@ test(list) ->
               new_env()),
     {{data, [a,b]}, _} =
         apply([cons, [quote, a], [quote, [b]]],
-              new_env());
+              new_env()).
 \end{SourceCode}
 
 \subsection{cond}
@@ -383,45 +380,36 @@ Erlang里，一个函数可以有多个分句。这也可以用case表达式来�
 \verb|list()| ，对其第一个元素求值的结果是 \verb|true| ，那么调用
 \verb|cond| 函数的结果就是对其第二个元素求值的结果。
 
-\begin{SourceCode}[100][127]{func5.erl}
+\begin{SourceCode}[106][124]{func5.erl}
 test('cond') ->
     {{data, a}, _} =
         apply(['cond',
-               [[[quote, true],
-                 [quote, a]],
-                [[quote, false],
-                 [quote, b]],
-                [[quote, false],
-                 [quote, c]]
-               ]], new_env()),
+               [[quote, true],  [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
     {{data, b}, _} =
         apply(['cond',
-               [[[quote, false],
-                 [quote, a]],
-                [[quote, true],
-                 [quote, b]],
-                [[quote, false],
-                 [quote, c]]
-               ]], new_env()),
+               [[quote, false], [quote, a]],
+               [[quote, true],  [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
     {{data, c}, _} =
         apply(['cond',
-               [[[quote, false],
-                 [quote, a]],
-                [[quote, false],
-                 [quote, b]],
-                [[quote, true],
-                 [quote, c]]
-               ]], new_env()).
+               [[quote, false], [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, true],  [quote, c]]
+              ], new_env()).
 \end{SourceCode}
 
 以下是 \verb|cond| 的定义
 
 \begin{SourceCode}[39][46]{func5.erl}
-call({fn, 'cond'}, [[[P,E]|T]], Env) ->
+call({fn, 'cond'}, [[P,E]|T], Env) ->
     {{data, R}, Env1} = apply(P, Env),
     case R of
         false ->
-            call({fn, 'cond'}, [T], Env1);
+            apply(['cond'|T], Env1);
         true ->
             apply(E, Env1)
     end.
@@ -433,7 +421,7 @@ call({fn, 'cond'}, [[[P,E]|T]], Env) ->
 断。先来看 \verb|atom| 。 \verb|atom| 的作用和Erlang里
 \verb|is_atom/1| 一样。
 
-\begin{SourceCode}[146][150]{func6.erl}
+\begin{SourceCode}[143][147]{func6.erl}
 test(atom) ->
     {{data, true}, _} =
         apply([atom, [quote, a]], new_env()),
@@ -453,7 +441,7 @@ call({fn, atom}, [X], Env) ->
 于两个非空的 \verb|list()| ，即便所有元素都相同，在这里也认为不同。因为
 能判断的话，已经具有部分模式匹配的功能了，这是现在需要尽量避免的。
 
-\begin{SourceCode}[151][169]{func6.erl}
+\begin{SourceCode}[148][166]{func6.erl}
 test(eq) ->
     {{data, true}, _} =
         apply([eq, [quote, []], [quote, []]],
@@ -499,15 +487,97 @@ call({fn, eq}, [X,Y], Env) ->
 
 \subsection{lambda}
 
-可以用 \verb|lambda| 定义函数。
+可以用 \verb|lambda| 定义函数。 \verb|lambda| 的第一个参数是函数的参数列表，第二个参数是一个S表达式。
 
+\begin{SourceCode}[186][203]{func7.erl}
+test(lambda) ->
+    {{data, a}, _} =
+        apply([[lambda, [x], x],
+               [quote, a]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x], [car, x]],
+               [quote, [a,b,c]]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x], [car, [car, x]]],
+               [quote, [[a]]]], new_env()),
+    {{data, true}, _} =
+        apply([[lambda, [x, y], [eq, x, y]],
+               [quote, a],
+               [quote, a]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x, x], x],
+               [quote, a],
+               [quote, b]], new_env()).
+\end{SourceCode}
+
+
+\begin{SourceCode}[54][59]{func7.erl}
+call({fn, lambda}, [P,E], Env) ->
+    {{lambda, {P,E}}, Env};
+call({lambda, {P,E}}, Args, Env) ->
+    {Args1, Env1} = eval_list(Args, Env),
+    {V, _} = apply(E, append(zip(P, Args1), Env1)),
+    {V, Env1}.
+\end{SourceCode}
 
 
 \subsection{macro}
 
 \begin{Exercise}[title={defun},difficulty=1]
+\verb|[defun, N, P, E]| 表示 \verb|[label, N, [lambda, P, E]]|\cite{Graham:2001:roots}。
+
+定义S表达式函数 \verb|defun|
+
+\begin{SourceCode}[27][31]{exercise.erl}
+check(defun) ->
+    {[_,{data, a}], _} =
+        defun:eval_list(
+          [[defun, caar, [x], [car, [car, x]]],
+           [caar, [quote, [[a]]]]], defun:new_env()).
+\end{SourceCode}
+
 \end{Exercise}
 
+\begin{Answer}
+\begin{SourceCode}[60][61]{defun.erl}
+call({fn, defun}, [N,P,E], Env) ->
+    apply([label, N, [lambda, P, E]], Env).
+\end{SourceCode}
+\end{Answer}
+
+\verb|macro|
+
+\begin{SourceCode}[217][235]{func8.erl}
+test(macro) ->
+    {[_,_,{data, a}], _} =
+        eval_list(
+          [[label, defun,
+            [macro, [n,p,e],
+             [ cons, [quote, label],
+              [cons, n,
+              [cons, [ cons, [quote, lambda],
+                      [cons, p,
+                      [cons, e,
+                             [quote, []]
+                      ]]],
+                     [quote, []]
+              ]]]
+            ]
+           ],
+           [defun, caar, [x], [car, [car, x]]],
+           [caar, [quote, [[a]]]]
+          ], new_env()).
+\end{SourceCode}
+
+
+\begin{SourceCode}[60][65]{func8.erl}
+call({fn, macro}, [P,E], Env) ->
+    {{macro, {P,E}}, Env};
+call({macro, {P,E}}, Args, Env) ->
+    Env1 = append(zip(P, quote_list(Args)), Env),
+    {{data, E1}, _} = apply(E, Env1),
+    apply(E1, Env).
+\end{SourceCode}
 
 
 \end{preview-page}

@@ -1,7 +1,7 @@
--module(func5).
+-module(func).
 -compile({no_auto_import, [apply/2]}).
 
--export([test/0]).
+-export([test/0, new_env/0, apply/2, eval_list/2]).
 
 
 subst(_, []) ->
@@ -43,7 +43,26 @@ call({fn, 'cond'}, [[P,E]|T], Env) ->
             apply(['cond'|T], Env1);
         true ->
             apply(E, Env1)
-    end.
+    end;
+call({fn, atom}, [X], Env) ->
+    {{data, X1}, Env1} = apply(X, Env),
+    {{data, is_atom(X1)}, Env1};
+call({fn, eq}, [X,Y], Env) ->
+    {[{data,X1}, {data,Y1}], Env1} =
+        eval_list([X,Y], Env),
+    {{data, eq(X1,Y1)}, Env1};
+call({fn, lambda}, [P,E], Env) ->
+    {{lambda, {P,E}}, Env};
+call({lambda, {P,E}}, Args, Env) ->
+    {Args1, Env1} = eval_list(Args, Env),
+    {V, _} = apply(E, append(zip(P, Args1), Env1)),
+    {V, Env1};
+call({fn, macro}, [P,E], Env) ->
+    {{macro, {P,E}}, Env};
+call({macro, {P,E}}, Args, Env) ->
+    Env1 = append(zip(P, quote_list(Args)), Env),
+    {{data, E1}, _} = apply(E, Env1),
+    apply(E1, Env).
 
 
 new_env() ->
@@ -52,7 +71,11 @@ new_env() ->
      {car,   {fn, car}},
      {cdr,   {fn, cdr}},
      {cons,  {fn, cons}},
-     {'cond',{fn, 'cond'}}].
+     {'cond',{fn, 'cond'}},
+     {atom,  {fn, atom}},
+     {eq,    {fn, eq}},
+     {lambda,{fn, lambda}},
+     {macro, {fn, macro}}].
 
 
 eval_list([], Env) ->
@@ -61,6 +84,33 @@ eval_list([H|T], Env) ->
     {VH, Env1} = apply(H, Env),
     {VT, Env2} = eval_list(T, Env1),
     {[VH|VT], Env2}.
+
+
+quote_list([]) ->
+    [];
+quote_list([H|T]) ->
+    [{data,H}|quote_list(T)].
+
+
+eq([], []) ->
+    true;
+eq(X, Y)
+  when is_atom(X), is_atom(Y) ->
+    X =:= Y;
+eq(_, _) ->
+    false.
+
+
+append([], L2) ->
+    L2;
+append([H|T], L2) ->
+    [H|append(T, L2)].
+
+
+zip([], []) ->
+    [];
+zip([H1|T1], [H2|T2]) ->
+    [{H1,H2}|zip(T1, T2)].
 
 
 test(subst) ->
@@ -121,7 +171,68 @@ test('cond') ->
                [[quote, false], [quote, a]],
                [[quote, false], [quote, b]],
                [[quote, true],  [quote, c]]
-              ], new_env()).
+              ], new_env());
+test(atom) ->
+    {{data, true}, _} =
+        apply([atom, [quote, a]], new_env()),
+    {{data, false}, _} =
+        apply([atom, [quote, [a,b,c]]], new_env());
+test(eq) ->
+    {{data, true}, _} =
+        apply([eq, [quote, []], [quote, []]],
+              new_env()),
+    {{data, true}, _} =
+        apply([eq, [quote, a], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, []], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, a], [quote, []]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a]], [quote, [b]]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a,b,c]], [quote, [a,b,c]]],
+              new_env());
+test(lambda) ->
+    {{data, a}, _} =
+        apply([[lambda, [x], x],
+               [quote, a]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x], [car, x]],
+               [quote, [a,b,c]]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x], [car, [car, x]]],
+               [quote, [[a]]]], new_env()),
+    {{data, true}, _} =
+        apply([[lambda, [x, y], [eq, x, y]],
+               [quote, a],
+               [quote, a]], new_env()),
+    {{data, a}, _} =
+        apply([[lambda, [x, x], x],
+               [quote, a],
+               [quote, b]], new_env());
+test(macro) ->
+    {[_,_,{data, a}], _} =
+        eval_list(
+          [[label, defun,
+            [macro, [n,p,e],
+             [ cons, [quote, label],
+              [cons, n,
+              [cons, [ cons, [quote, lambda],
+                      [cons, p,
+                      [cons, e,
+                             [quote, []]
+                      ]]],
+                     [quote, []]
+              ]]]
+            ]
+           ],
+           [defun, caar, [x], [car, [car, x]]],
+           [caar, [quote, [[a]]]]
+          ], new_env()).
 
 
 test() ->
@@ -130,4 +241,8 @@ test() ->
     test(label),
     test(list),
     test('cond'),
+    test(atom),
+    test(eq),
+    test(lambda),
+    test(macro),
     ok.

@@ -1,4 +1,4 @@
--module(board).
+-module(board2).
 
 -export([test/0, move/2, moves/2]).
 
