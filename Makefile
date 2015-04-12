@@ -1,57 +1,35 @@
-.PHONY: phony clean clean_tex check prepare release preview
+.PHONY: phony clean build release preview check
 
-clean: clean_tex
-	rm -f *.pdf */*.pdf
-	rm -f *~ */*~
-	rm -f *.beam */*.beam
-	rm -f */*.session
-	rm -f */*.snippet
-	rm -f *.synctex.gz */*.synctex.gz
-	rm -f *.svg
-	rm -f *.zip
-	rm -f pages.html
+clean:
+	make -C build clean
+	rm -f build/*.svg
+	rm -f build/*.zip
+	rm -f build/pages.html
 
-release: | preview check screen.pdf print.pdf code.zip exercise.zip src.zip
+build:
+	./snip.py build
+	cd src; cp --parents -u -t ../build Makefile *.* */Manifest
+
+release: | build preview check build/screen.pdf build/print.pdf build/code.zip build/exercise.zip build/src.zip
 	git diff --exit-code
-	python2 makerelease.py master
+	./makerelease.py master
+
+build/code.zip: phony
+	cd build; zip code */*.erl
+
+build/exercise.zip: phony
+	cd build; ls */Manifest | grep -Eo '^[^/]+' | xargs -I {} sed 's/\(.*\)/{}\/\1/' {}/Manifest | zip exercise -@
+
+build/src.zip: phony
+	git archive -o build/src.zip master
+
+preview: build/body.pdf
+	./makesvg.py "$<"
 
 check:
-	escript check.erl
+	make -C build check
 
-preview: body.pdf
-	python2 makesvg.py "$<"
-
-code.zip: phony
-	zip code */*.erl
-
-exercise.zip: phony
-	zip exercise */exercise.erl
-
-src.zip: phony
-	git archive -o src.zip master
-
-%.pdf: %.clean_tex
-	xelatex -interaction=nonstopmode -halt-on-error "$(@:.pdf=)"
-	ls *.aux | grep -v "$(@:.pdf=.aux)" | xargs -I {} bibtex {}
-	xelatex -interaction=nonstopmode -halt-on-error "$(@:.pdf=)"
-	xelatex -interaction=nonstopmode -halt-on-error "$(@:.pdf=)"
-
-clean_tex:
-	rm -f *.aux */*.aux
-	rm -f *.log */*.log
-	rm -f *.out */*.out
-	rm -f *.toc */*.toc
-	rm -f *.lol */*.lol
-	rm -f *.bbl */*.bbl
-	rm -f *.blg */*.blg
-
-%.clean_tex: phony
-	rm -f *.aux */*.aux
-	rm -f *.log */*.log
-	rm -f *.out */*.out
-	rm -f *.toc */*.toc
-	rm -f *.lol */*.lol
-	rm -f *.bbl */*.bbl
-	rm -f *.blg */*.blg
+build/%.pdf:
+	make -C build "$(@:build/%.pdf=%.pdf)"
 
 phony: ;

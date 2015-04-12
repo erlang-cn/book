@@ -9,8 +9,8 @@
 *.toc
 *.lol
 *.session
-*.snippet
 *.synctex.gz
 *.svg
 *.zip
-pages.html
+.snip/
+build/

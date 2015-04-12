@@ -36,8 +36,8 @@ def make_preview(store):
     tree = Tree()
     files = [
         ("index.html", "preview.html"),
-        ("pages.html", "pages.html")]
-    files.extend([(n,n) for n in glob.glob("*.svg")])
+        ("pages.html", "build/pages.html")]
+    files.extend([(n[6:],n) for n in glob.glob("build/*.svg")])
     add_files(store, tree, files)
     store.add_object(tree)
     return tree.id
@@ -53,7 +53,7 @@ def make_release_tree(store, sha):
         ("screen","pdf"),
         ("print","pdf")]
 
-    files = [("%s.%s.%s"%(a,sha,b), "%s.%s"%(a,b)) for a,b in names]
+    files = [("%s.%s.%s"%(a,sha,b), "build/%s.%s"%(a,b)) for a,b in names]
     add_files(store, tree, files)
 
     date = formatdate(commit.author_time, commit.author_timezone)
