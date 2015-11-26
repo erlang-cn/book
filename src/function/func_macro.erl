@@ -1,4 +1,4 @@
--module(func8).
+-module(func_macro).
 % SNIP BEGIN func-no-auto-import
 -compile({no_auto_import, [apply/2]}).
 % SNIP END

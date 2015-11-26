@@ -7,6 +7,7 @@ clean:
 	rm -f build/pages.html
 
 build:
+	rm build/*/*
 	./snip.py build
 	cd src; cp --parents -u -t ../build Makefile *.* */Manifest
 

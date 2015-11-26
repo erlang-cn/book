@@ -90,7 +90,7 @@ get_value(Name, [_|Env]) ->
 素用来表示变量名，第二个元素用来表示变量的值。定义 \verb|subst/2| ，用
 来从这样的Environment里取出变量的值。
 
-% SNIP REFERENCE func1.erl func-subst
+% SNIP REFERENCE func_quote.erl func-subst
 \begin{SourceCode}
 % SNIP BEGIN func-subst
 subst(_, []) ->
@@ -160,7 +160,7 @@ is_sexpr(Expr) ->
 传入的参数。这种求值的规则可以用 \verb|apply/2| 来表示。
 \verb|apply/2| 定义如下
 
-% SNIP REFERENCE func1.erl func-apply
+% SNIP REFERENCE func_quote.erl func-apply
 \begin{SourceCode}
 % SNIP BEGIN func-apply
 apply([H|T], Env) ->
@@ -176,7 +176,7 @@ apply(Expr, Env) ->
 注意，Erlang编译时默认导入的函数中，也有叫 \verb|apply/2| 的。可以在文
 件开头取消。
 
-% SNIP REFERENCE func1.erl func-no-auto-import
+% SNIP REFERENCE func_quote.erl func-no-auto-import
 \begin{SourceCode}
 % SNIP BEGIN func-no-auto-import
 -compile({no_auto_import, [apply/2]}).
@@ -195,7 +195,7 @@ apply(Expr, Env) ->
 \verb|a| ，需要定义 \verb|quote| 函数。这个函数只接受一个参数，调用这个
 函数的结果就是传入的参数。
 
-% SNIP REFERENCE func1.erl func-test-quote1
+% SNIP REFERENCE func_quote.erl func-test-quote1
 \begin{SourceCode}
 % SNIP BEGIN func-test-quote1
 test(quote) ->
@@ -209,7 +209,7 @@ test(quote) ->
 
 先定义\verb|new_env/0| ，用来得到一开始的 Environment。
 
-% SNIP REFERENCE func1.erl func-env-quote
+% SNIP REFERENCE func_quote.erl func-env-quote
 \begin{SourceCode}
 % SNIP BEGIN func-env-quote
 new_env() ->
@@ -220,7 +220,7 @@ new_env() ->
 
 \verb|quote| 的定义很简单。
 
-% SNIP REFERENCE func1.erl func-quote
+% SNIP REFERENCE func_quote.erl func-quote
 \begin{SourceCode}
 % SNIP BEGIN func-quote
 call({fn, quote}, [X], Env) ->
@@ -255,7 +255,7 @@ test(id) ->
 而在S表达式里，在调用函数前，没有先对表达式求值。所以，
 \verb|[quote, [quote, a]]| 的求值结果会是 \verb|[quote, a]| 。
 
-% SNIP REFERENCE func2.erl func-test-quote2
+% SNIP REFERENCE func_quote2.erl func-test-quote2
 \begin{SourceCode}
 % SNIP BEGIN func-test-quote2
     {{data, [quote, a]}, _} =
@@ -273,9 +273,9 @@ test(id) ->
 % SNIP BEGIN ex-id
 check(id) ->
     {{data, a}, _} =
-        id:apply([id, [quote, a]], id:new_env()),
+        func_id:apply([id, [quote, a]], func_id:new_env()),
     {{data, a}, _} =
-        id:apply([id, [id, [quote, a]]], id:new_env()),
+        func_id:apply([id, [id, [quote, a]]], func_id:new_env()),
     ok;
 % SNIP END
 \end{SourceCode}
@@ -284,7 +284,7 @@ check(id) ->
 
 \begin{Answer}
 
-% SNIP REFERENCE id.erl ans-id-func
+% SNIP REFERENCE func_id.erl ans-id-func
 \begin{SourceCode}
 % SNIP BEGIN ans-id-func
 call({fn, id}, [X], Env) ->
@@ -292,7 +292,7 @@ call({fn, id}, [X], Env) ->
 % SNIP END
 \end{SourceCode}
 
-% SNIP REFERENCE id.erl ans-id-newenv
+% SNIP REFERENCE func_id.erl ans-id-newenv
 \begin{SourceCode}
 % SNIP BEGIN ans-id-newenv
      {id,    {fn, id}}].
@@ -310,7 +310,7 @@ call({fn, id}, [X], Env) ->
 ，用来对一连串S表达式分别求值。
 
 
-% SNIP REFERENCE func3.erl func-eval-list
+% SNIP REFERENCE func_label.erl func-eval-list
 \begin{SourceCode}
 % SNIP BEGIN func-eval-list
 eval_list([], Env) ->
@@ -324,7 +324,7 @@ eval_list([H|T], Env) ->
 
 接着来定义 \verb|label|
 
-% SNIP REFERENCE func3.erl func-label
+% SNIP REFERENCE func_label.erl func-label
 \begin{SourceCode}
 % SNIP BEGIN func-label
 call({fn, label}, [X,Y], Env) ->
@@ -336,7 +336,7 @@ call({fn, label}, [X,Y], Env) ->
 
 这样定义的问题是，前一次指定的值会被后一次指定的值覆盖
 
-% SNIP REFERENCE func3.erl func-test-label
+% SNIP REFERENCE func_label.erl func-test-label
 \begin{SourceCode}
 % SNIP BEGIN func-test-label
 test(label) ->
@@ -420,7 +420,7 @@ test(cons) ->
 
 定义 \verb|car|, \verb|cdr|, \verb|cons| 。
 
-% SNIP REFERENCE func4.erl func-list
+% SNIP REFERENCE func_list.erl func-list
 \begin{SourceCode}
 % SNIP BEGIN func-list
 call({fn, car}, [X], Env) ->
@@ -439,7 +439,7 @@ call({fn, cons}, [X,Y], Env) ->
 
 可以看到和Erlang里对应的函数作用是一样的。
 
-% SNIP REFERENCE func4.erl func-test-list
+% SNIP REFERENCE func_list.erl func-test-list
 \begin{SourceCode}
 % SNIP BEGIN func-test-list
 test(list) ->
@@ -471,7 +471,7 @@ Erlang里，一个函数可以有多个分句。这也可以用case表达式来�
 \verb|cond| 函数的结果就是对其第二个元素求值的结果。
 
 
-% SNIP REFERENCE func5.erl func-test-cond
+% SNIP REFERENCE func_cond.erl func-test-cond
 \begin{SourceCode}
 % SNIP BEGIN func-test-cond
 test('cond') ->
@@ -499,7 +499,7 @@ test('cond') ->
 
 以下是 \verb|cond| 的定义
 
-% SNIP REFERENCE func5.erl func-cond
+% SNIP REFERENCE func_cond.erl func-cond
 \begin{SourceCode}
 % SNIP BEGIN func-cond
 call({fn, 'cond'}, [[P,E]|T], Env) ->
@@ -521,7 +521,7 @@ call({fn, 'cond'}, [[P,E]|T], Env) ->
 \verb|is_atom/1| 一样。
 
 
-% SNIP REFERENCE func6.erl func-test-atom
+% SNIP REFERENCE func_pred.erl func-test-atom
 \begin{SourceCode}
 % SNIP BEGIN func-test-atom
 test(atom) ->
@@ -534,7 +534,7 @@ test(atom) ->
 
 \verb|atom| 的定义很简单。
 
-% SNIP REFERENCE func6.erl func-atom
+% SNIP REFERENCE func_pred.erl func-atom
 \begin{SourceCode}
 % SNIP BEGIN func-atom
 call({fn, atom}, [X], Env) ->
@@ -547,7 +547,7 @@ call({fn, atom}, [X], Env) ->
 于两个非空的 \verb|list()| ，即便所有元素都相同，在这里也认为不同。因为
 能判断的话，已经具有部分模式匹配的功能了，这是现在需要尽量避免的。
 
-% SNIP REFERENCE func6.erl func-test-eq
+% SNIP REFERENCE func_pred.erl func-test-eq
 \begin{SourceCode}
 % SNIP BEGIN func-test-eq
 test(eq) ->
@@ -575,7 +575,7 @@ test(eq) ->
 
 在Erlang里，可以用 \verb|eq/2| 表示
 
-% SNIP REFERENCE func6.erl func-helper-eq
+% SNIP REFERENCE func_pred.erl func-helper-eq
 \begin{SourceCode}
 % SNIP BEGIN func-helper-eq
 eq([], []) ->
@@ -591,8 +591,8 @@ eq(_, _) ->
 
 直接用一下Erlang里的 \verb|eq/2| 就定义出 \verb|eq| 来了。
 
-% SNIP REFERENCE func6.erl func-eq
-\begin{SourceCode}[50][53]{func6.erl}
+% SNIP REFERENCE func_pred.erl func-eq
+\begin{SourceCode}
 % SNIP BEGIN func-eq
 call({fn, eq}, [X,Y], Env) ->
     {[{data,X1}, {data,Y1}], Env1} =
@@ -606,7 +606,7 @@ call({fn, eq}, [X,Y], Env) ->
 
 可以用 \verb|lambda| 定义函数。 \verb|lambda| 的第一个参数是函数的参数列表，第二个参数是一个S表达式。
 
-% SNIP REFERENCE func7.erl func-test-lambda
+% SNIP REFERENCE func_lambda.erl func-test-lambda
 \begin{SourceCode}
 % SNIP BEGIN func-test-lambda
 test(lambda) ->
@@ -632,8 +632,8 @@ test(lambda) ->
 \end{SourceCode}
 
 
-% SNIP REFERENCE func7.erl func-lambda
-\begin{SourceCode}[54][59]{func7.erl}
+% SNIP REFERENCE func_lambda.erl func-lambda
+\begin{SourceCode}
 % SNIP BEGIN func-lambda
 call({fn, lambda}, [P,E], Env) ->
     {{lambda, {P,E}}, Env};
@@ -679,7 +679,7 @@ call({fn, defun}, [N,P,E], Env) ->
 
 \verb|macro|
 
-% SNIP REFERENCE func8.erl func-test-macro
+% SNIP REFERENCE func_macro.erl func-test-macro
 \begin{SourceCode}
 % SNIP BEGIN func-test-macro
 test(macro) ->
@@ -704,7 +704,7 @@ test(macro) ->
 % SNIP END
 \end{SourceCode}
 
-% SNIP REFERENCE func8.erl func-macro
+% SNIP REFERENCE func_macro.erl func-macro
 \begin{SourceCode}
 % SNIP BEGIN func-macro
 call({fn, macro}, [P,E], Env) ->

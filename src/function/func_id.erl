@@ -1,9 +1,9 @@
--module(func3).
+-module(func_id).
 % SNIP BEGIN func-no-auto-import
 -compile({no_auto_import, [apply/2]}).
 % SNIP END
 
--export([test/0]).
+-export([test/0, new_env/0, apply/2]).
 
 
 % SNIP BEGIN func-subst
@@ -32,12 +32,10 @@ call({fn, quote}, [X], Env) ->
     {{data, X}, Env}
 %- SNIP END
 ;
-% SNIP BEGIN func-label
-call({fn, label}, [X,Y], Env) ->
-    {Y1, Env1} = apply(Y, Env),
-    {Y1, [{X, Y1}|Env1]}
-%- SNIP END
-.
+% SNIP BEGIN ans-id-func
+call({fn, id}, [X], Env) ->
+    apply(X, Env).
+% SNIP END
 
 
 % SNIP BEGIN func-env-quote
@@ -45,19 +43,8 @@ new_env() ->
     [{quote, {fn, quote}}
 %- SNIP END
 ,
-% SNIP BEGIN func-env-label
-     {label, {fn, label}}
-%- SNIP END
-].
-
-
-% SNIP BEGIN func-eval-list
-eval_list([], Env) ->
-    {[], Env};
-eval_list([H|T], Env) ->
-    {VH, Env1} = apply(H, Env),
-    {VT, Env2} = eval_list(T, Env1),
-    {[VH|VT], Env2}.
+% SNIP BEGIN ans-id-newenv
+     {id,    {fn, id}}].
 % SNIP END
 
 
@@ -79,28 +66,9 @@ test(quote) ->
     {{data, [quote, a]}, _} =
         apply([quote, [quote, a]], new_env())
 %- SNIP END
-;
-% SNIP BEGIN func-test-label
-test(label) ->
-    {[{data, a}, {data, a}], _} =
-        eval_list([[label, x, [quote, a]],
-                   x
-                  ], new_env()),
-    {[{data, b}, {data, b}], _} =
-        eval_list([[label, x, [quote, b]],
-                   x
-                  ], new_env()),
-    {[{data, a}, {data, b}, {data, b}], _} =
-        eval_list([[label, x, [quote, a]],
-                   [label, x, [quote, b]],
-                   x
-                  ], new_env())
-%- SNIP END
 .
-
 
 test() ->
     test(subst),
     test(quote),
-    test(label),
     ok.

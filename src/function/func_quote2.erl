@@ -1,4 +1,4 @@
--module(func1).
+-module(func_quote2).
 % SNIP BEGIN func-no-auto-import
 -compile({no_auto_import, [apply/2]}).
 % SNIP END
@@ -54,8 +54,12 @@ test(quote) ->
     {{data, [a,b,c]}, _} =
         apply([quote, [a,b,c]], new_env())
 %- SNIP END
+,
+% SNIP BEGIN func-test-quote2
+    {{data, [quote, a]}, _} =
+        apply([quote, [quote, a]], new_env())
+%- SNIP END
 .
-
 
 test() ->
     test(subst),

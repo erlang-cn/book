@@ -1,4 +1,4 @@
--module(func4).
+-module(func_pred).
 % SNIP BEGIN func-no-auto-import
 -compile({no_auto_import, [apply/2]}).
 % SNIP END
@@ -50,6 +50,29 @@ call({fn, cons}, [X,Y], Env) ->
         eval_list([X,Y], Env),
     {{data, [X1|Y1]}, Env1}
 %- SNIP END
+;
+% SNIP BEGIN func-cond
+call({fn, 'cond'}, [[P,E]|T], Env) ->
+    {{data, R}, Env1} = apply(P, Env),
+    case R of
+        false ->
+            apply(['cond'|T], Env1);
+        true ->
+            apply(E, Env1)
+    end
+%- SNIP END
+;
+% SNIP BEGIN func-atom
+call({fn, atom}, [X], Env) ->
+    {{data, X1}, Env1} = apply(X, Env),
+    {{data, is_atom(X1)}, Env1};
+% SNIP END
+% SNIP BEGIN func-eq
+call({fn, eq}, [X,Y], Env) ->
+    {[{data,X1}, {data,Y1}], Env1} =
+        eval_list([X,Y], Env),
+    {{data, eq(X1,Y1)}, Env1}
+%- SNIP END
 .
 
 
@@ -67,6 +90,15 @@ new_env() ->
      {cdr,   {fn, cdr}},
      {cons,  {fn, cons}}
 %- SNIP END
+,
+% SNIP BEGIN func-env-cond
+     {'cond',{fn, 'cond'}}
+%- SNIP END
+,
+% SNIP BEGIN func-predicate
+     {atom,  {fn, atom}},
+     {eq,    {fn, eq}}
+%- SNIP END
 ].
 
 
@@ -77,6 +109,17 @@ eval_list([H|T], Env) ->
     {VH, Env1} = apply(H, Env),
     {VT, Env2} = eval_list(T, Env1),
     {[VH|VT], Env2}.
+% SNIP END
+
+
+% SNIP BEGIN func-helper-eq
+eq([], []) ->
+    true;
+eq(X, Y)
+  when is_atom(X), is_atom(Y) ->
+    X =:= Y;
+eq(_, _) ->
+    false.
 % SNIP END
 
 
@@ -133,6 +176,57 @@ test(list) ->
         apply([cons, [quote, a], [quote, [b]]],
               new_env())
 %- SNIP END
+;
+% SNIP BEGIN func-test-cond
+test('cond') ->
+    {{data, a}, _} =
+        apply(['cond',
+               [[quote, true],  [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
+    {{data, b}, _} =
+        apply(['cond',
+               [[quote, false], [quote, a]],
+               [[quote, true],  [quote, b]],
+               [[quote, false], [quote, c]]
+              ], new_env()),
+    {{data, c}, _} =
+        apply(['cond',
+               [[quote, false], [quote, a]],
+               [[quote, false], [quote, b]],
+               [[quote, true],  [quote, c]]
+              ], new_env())
+%- SNIP END
+;
+% SNIP BEGIN func-test-atom
+test(atom) ->
+    {{data, true}, _} =
+        apply([atom, [quote, a]], new_env()),
+    {{data, false}, _} =
+        apply([atom, [quote, [a,b,c]]], new_env());
+% SNIP END
+% SNIP BEGIN func-test-eq
+test(eq) ->
+    {{data, true}, _} =
+        apply([eq, [quote, []], [quote, []]],
+              new_env()),
+    {{data, true}, _} =
+        apply([eq, [quote, a], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, []], [quote, a]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, a], [quote, []]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a]], [quote, [b]]],
+              new_env()),
+    {{data, false}, _} =
+        apply([eq, [quote, [a,b,c]], [quote, [a,b,c]]],
+              new_env())
+%- SNIP END
 .
 
 
@@ -141,4 +235,7 @@ test() ->
     test(quote),
     test(label),
     test(list),
+    test('cond'),
+    test(atom),
+    test(eq),
     ok.

@@ -26,9 +26,9 @@ check(sexpr) ->
 % SNIP BEGIN ex-id
 check(id) ->
     {{data, a}, _} =
-        id:apply([id, [quote, a]], id:new_env()),
+        func_id:apply([id, [quote, a]], func_id:new_env()),
     {{data, a}, _} =
-        id:apply([id, [id, [quote, a]]], id:new_env()),
+        func_id:apply([id, [id, [quote, a]]], func_id:new_env()),
     ok;
 % SNIP END
 % SNIP BEGIN ex-defun

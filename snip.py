@@ -161,6 +161,17 @@ CREATE TABLE IF NOT EXISTS snippets (
         conn.executemany(
             """DELETE FROM files WHERE filename = ? AND timestamp < ?""",
             files)
+        filenames = [filename for (filename,_) in files]
+
+        cur = conn.execute(
+            """SELECT filename FROM files""")
+        deleted = [row[0]
+                   for row in cur.fetchall()
+                   if row[0] not in filenames]
+        for filename in deleted:
+            conn.execute(
+                """DELETE FROM files WHERE filename = ?""",
+                (filename,))
 
         for filename, timestamp in files:
             cur = conn.execute(
