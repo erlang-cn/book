@@ -82,4 +82,4 @@ new_commit.tree = make_release_tree(store, commit_sha)
 
 store.add_object(new_commit)
 
-repo['refs/heads/release'] = new_commit.id
+repo['refs/heads/gh-pages'] = new_commit.id
